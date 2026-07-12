@@ -1,0 +1,166 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Description: NicheSpark — AI Content Batch Generator (AWS Builder Challenge 2025)
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 60
+    MemorySize: 512
+    Environment:
+      Variables:
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
+        FRONTEND_ORIGIN: !Ref FrontendOrigin
+
+Parameters:
+  FrontendOrigin:
+    Type: String
+    Default: "*"
+    Description: "Amplify app URL (e.g. https://main.xxxxx.amplifyapp.com)"
+
+Resources:
+  # ── DynamoDB Tables ─────────────────────────────────────────────────────────
+
+  ProfilesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: nichespark-profiles
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: nichespark-sessions
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: createdAt
+          KeyType: RANGE
+
+  # ── API Gateway ──────────────────────────────────────────────────────────────
+
+  NicheSparkApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref FrontendOrigin
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+
+  # ── Lambda Functions ─────────────────────────────────────────────────────────
+
+  GenerateIdeasFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: nichespark-generate-ideas
+      CodeUri: ../backend/dist/generateIdeas/
+      Handler: index.handler
+      Timeout: 90  # Bedrock chain can take up to ~30s
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: "*"
+      Events:
+        Post:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref NicheSparkApi
+            Path: /generate
+            Method: POST
+        Options:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref NicheSparkApi
+            Path: /generate
+            Method: OPTIONS
+
+  ProfileFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: nichespark-profile
+      CodeUri: ../backend/dist/saveProfile/
+      Handler: index.handler
+      Environment:
+        Variables:
+          PROFILES_TABLE: !Ref ProfilesTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProfilesTable
+      Events:
+        Post:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref NicheSparkApi
+            Path: /profile
+            Method: POST
+        Get:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref NicheSparkApi
+            Path: /profile/{userId}
+            Method: GET
+        Options:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref NicheSparkApi
+            Path: /profile
+            Method: OPTIONS
+
+  HistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: nichespark-history
+      CodeUri: ../backend/dist/getHistory/
+      Handler: index.handler
+      Environment:
+        Variables:
+          SESSIONS_TABLE: !Ref SessionsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionsTable
+      Events:
+        Post:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref NicheSparkApi
+            Path: /history
+            Method: POST
+        Get:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref NicheSparkApi
+            Path: /history/{userId}
+            Method: GET
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint — paste into VITE_API_URL"
+    Value: !Sub "https://${NicheSparkApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
+
+  ProfilesTableName:
+    Value: !Ref ProfilesTable
+
+  SessionsTableName:
+    Value: !Ref SessionsTable
