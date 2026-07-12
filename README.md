@@ -1,6 +1,6 @@
 # ✨ NicheSpark — AI Content Productivity Coach
 
-> **AWS Builder Challenge · July 2025**  
+> **AWS Builder Challenge · July 2026**  
 > Built with **Kiro** (spec-driven AI IDE) + **Amazon Bedrock** (Claude 3) + **AWS Amplify**
 
 **One-sentence pitch:** NicheSpark ends "what should I post?" paralysis — it takes your niche and runs a 4-step Amazon Bedrock AI chain to generate 7 virality-scored, ready-to-post content ideas and a full 7-day calendar, personalised to your voice and audience, in under 40 seconds.
