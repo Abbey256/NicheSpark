@@ -16,7 +16,7 @@ import type {
 import { generateIdeasMock } from "@/lib/mockApi";
 import { runFullChain, type StepCallback } from "@/lib/aiChain";
 
-const API_BASE    = import.meta.env.VITE_API_URL ?? "";
+const API_BASE    = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, ""); // strip trailing slash
 const HAS_LAMBDA  = !!API_BASE;
 const HAS_BEDROCK = !!import.meta.env.VITE_AWS_ACCESS_KEY_ID;
 

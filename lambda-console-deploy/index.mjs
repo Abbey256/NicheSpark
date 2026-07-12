@@ -1,8 +1,11 @@
 /**
- * NicheSpark Lambda — paste this into the AWS Console Lambda editor.
+ * NicheSpark Lambda — paste into AWS Console Lambda editor.
  * Runtime: Node.js 20.x
- * Required env var: (none — uses execution role for Bedrock auth)
- * Required IAM: AmazonBedrockFullAccess on the execution role
+ * IAM: AmazonBedrockFullAccess on execution role
+ *
+ * IMPORTANT — Function URL CORS settings:
+ *   Do NOT enable CORS in the Function URL config.
+ *   This function handles CORS headers itself to avoid duplicates.
  */
 
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
@@ -10,8 +13,9 @@ import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedroc
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION ?? "us-east-1" });
 const MODEL  = "anthropic.claude-3-haiku-20240307-v1:0";
 
+// Single source of truth for CORS — do NOT also set in Function URL config
 const CORS = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":  "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
@@ -39,85 +43,116 @@ function parseArray(raw) {
   return JSON.parse(m[0]);
 }
 
-function id() {
+function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+function respond(statusCode, body) {
+  return {
+    statusCode,
+    headers: { ...CORS, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  };
+}
+
 export async function handler(event) {
+  const method = event.requestContext?.http?.method ?? event.httpMethod ?? "POST";
+
   // CORS preflight
-  if (event.requestContext?.http?.method === "OPTIONS") {
+  if (method === "OPTIONS") {
     return { statusCode: 204, headers: CORS, body: "" };
   }
 
   try {
-    const { profile, vibe, customPrompt, platforms, count = 7 } = JSON.parse(event.body ?? "{}");
+    const body = JSON.parse(event.body ?? "{}");
+    const { profile, vibe, customPrompt, platforms, count = 7 } = body;
 
     if (!profile || !vibe || !platforms?.length) {
-      return respond(400, { success: false, error: "profile, vibe, platforms required" });
+      return respond(400, { success: false, error: "profile, vibe, and platforms are required" });
     }
 
     const vibeGuide = {
       "surprise-me":    "Mix formats — hot take, list, story, data-driven post.",
       motivational:     "Mindset shifts, overcoming obstacles, identity-level transformation.",
-      educational:      "Teach one clear concept. Use numbered lists or step-by-step.",
+      educational:      "Teach one clear concept. Use numbered lists or step-by-step format.",
       "case-study":     "Situation → problem → solution → result. Use specific numbers.",
       "quick-tip":      "Single actionable insight. Short, punchy, immediate value.",
       "personal-story": "First-person narrative. Struggle → insight → lesson.",
       trending:         "Tap a current cultural moment or trending format in this niche.",
     };
 
-    // Step 1: Research
+    // ── Step 1: Niche research ──────────────────────────────────────────────
     const research = await claude(
-      `You are a social media trend analyst. Research what content works in specific niches. Output plain paragraphs only.`,
-      `Niche: "${profile.niche}" | Audience: "${profile.targetAudience}" | Platforms: ${platforms.join(", ")} | Vibe: "${vibe}"
-Research what formats, emotional triggers, and hook patterns perform best here. 150 words max.`,
+      `You are a social media trend analyst specialising in content virality.
+Research what content formats and angles perform best in specific niches.
+Output plain paragraphs only — no markdown, no bullet symbols.`,
+      `Niche: "${profile.niche}"
+Audience: "${profile.targetAudience}"
+Platforms: ${platforms.join(", ")}
+Vibe: "${vibe}"
+
+What formats, emotional triggers, and hook patterns perform best here right now?
+What angles are underused but high-potential? Keep it to 120 words.`,
       800
     );
 
-    // Step 2: Generate
+    // ── Step 2: Generate batch ──────────────────────────────────────────────
     const rawJson = await claude(
-      `You are a social media copywriter for ${profile.niche}. Voice: ${profile.voiceTone}.
-Output ONLY a valid raw JSON array. No preamble, no markdown fences.`,
-      `Research: ${research}
+      `You are a world-class social media copywriter for the ${profile.niche} niche.
+Voice/tone: ${profile.voiceTone}.
+You output ONLY a valid raw JSON array. No preamble, no explanation, no markdown fences.`,
+      `Research context: ${research}
+
 Creator: ${profile.name} | Niche: ${profile.niche} | Audience: ${profile.targetAudience}
-Vibe: "${vibe}" — ${vibeGuide[vibe] ?? ""}
+Vibe: "${vibe}" — ${vibeGuide[vibe] ?? "mix of formats"}
 ${customPrompt ? `Custom angle: "${customPrompt}"` : ""}
 Platforms: ${platforms.join(", ")}
+${profile.examplePosts?.length ? `Style reference posts:\n${profile.examplePosts.map((p,i)=>`[${i+1}] "${p}"`).join("\n")}` : ""}
 
-Generate exactly ${count} post ideas as JSON array. Each object:
-{"hook":"...","caption":"...","visualDescription":"...","cta":"...","hashtags":["..."],"platform":"${platforms[0]}","format":"Carousel|Reel|Thread|Single image|Short video"}
-Output ONLY the JSON array.`,
+Generate exactly ${count} post ideas as a JSON array. Each object MUST have:
+{
+  "hook": "irresistible opening line",
+  "caption": "full caption 80-200 words, conversational, ends with engagement question",
+  "visualDescription": "specific description of image/video needed",
+  "cta": "clear call to action",
+  "hashtags": ["8-12 relevant hashtags"],
+  "platform": "one of: ${platforms.join(" | ")}",
+  "format": "one of: Carousel | Reel | Thread | Single image | Short video | Talking head"
+}
+Output ONLY the JSON array. Nothing else.`,
       3500
     );
 
-    // Step 3: Score
+    // ── Step 3: Score + refine ──────────────────────────────────────────────
     const scoredJson = await claude(
-      `You are a viral content analyst. Output ONLY a valid raw JSON array. No preamble, no fences.`,
-      `Score these ideas for a ${profile.niche} creator targeting: ${profile.targetAudience}.
-Ideas: ${rawJson}
-Add to each object:
-- "id": unique 8-char alphanumeric
-- "viralityScore": integer 1-10 (honest — most should be 6-8)
-- "viralityReason": "1-2 sentences: WHY this score"
+      `You are a viral content analyst. Score social media ideas honestly.
+Output ONLY a valid raw JSON array. No preamble, no markdown fences.`,
+      `Score these ${profile.niche} post ideas. Audience: ${profile.targetAudience}.
+
+${rawJson}
+
+For each idea add:
+- "id": unique 8-char alphanumeric string
+- "viralityScore": integer 1-10 (calibrated — most should be 6-8, only exceptional ideas get 9-10)
+- "viralityReason": "1-2 sentences: name the specific psychological trigger or format advantage"
 - "createdAt": "${new Date().toISOString()}"
-Also improve each "hook" to be sharper. Output ONLY the complete JSON array.`,
+
+Also sharpen each "hook" to be more specific and irresistible.
+Return the COMPLETE array with ALL original fields PLUS new fields.
+Output ONLY the JSON array.`,
       4096
     );
 
     let ideas = parseArray(scoredJson);
-    ideas = ideas.map(i => ({ ...i, id: i.id ?? id() }));
+    ideas = ideas.map(i => ({ ...i, id: i.id ?? uid(), createdAt: i.createdAt ?? new Date().toISOString() }));
     ideas.sort((a, b) => b.viralityScore - a.viralityScore);
 
-    const sessionSummary = `${profile.niche} insights: ${research.slice(0, 200)}…`;
+    const sessionSummary = `${profile.niche} research: ${research.replace(/\n/g, " ").slice(0, 200)}…`;
 
     return respond(200, { success: true, data: { ideas, sessionSummary } });
 
   } catch (err) {
-    console.error(err);
-    return respond(500, { success: false, error: err.message ?? "Internal error" });
+    console.error("Lambda error:", err);
+    return respond(500, { success: false, error: err?.message ?? "Internal server error" });
   }
-}
-
-function respond(statusCode, body) {
-  return { statusCode, headers: { ...CORS, "Content-Type": "application/json" }, body: JSON.stringify(body) };
 }
