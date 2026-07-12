@@ -1,137 +1,114 @@
 /**
- * Mock API — returns realistic data so you can run and refine the UI
- * without AWS credentials. Swap out for the real api.ts calls when ready.
- *
- * Activated automatically when VITE_API_URL is not set (dev mode).
+ * mockApi.ts — Dynamic mock that varies by niche, vibe, and profile.
+ * Used when no AWS credentials are present.
  */
-import type {
-  GenerateIdeasRequest,
-  GenerateIdeasResponse,
-  PostIdea,
-  Platform,
-} from "@/types";
+import type { GenerateIdeasRequest, GenerateIdeasResponse, PostIdea, Platform } from "@/types";
 import { generateId } from "@/lib/utils";
 
-const MOCK_DELAY_MS = 2800; // simulate Bedrock chain latency
+const MOCK_DELAY_MS = 2200;
+function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
+// ── Templates that slot in the creator's actual niche + audience ──────────────
+
+function makeIdeas(profile: { niche: string; targetAudience: string; voiceTone: string }, platforms: Platform[]): Omit<PostIdea, "id" | "createdAt" | "platform">[] {
+  const n = profile.niche;
+  const a = profile.targetAudience.split(" ").slice(0, 6).join(" ");
+
+  return [
+    {
+      hook: `I've been in ${n} for years. Here's the one thing nobody tells beginners 👇`,
+      caption: `Everyone starting out in ${n} makes the same mistake.\n\nThey focus on doing MORE instead of doing it RIGHT.\n\nHere's what actually moves the needle for ${a}:\n\n✅ Start with one thing and master it\n✅ Track your progress every single week\n✅ Find a community that keeps you accountable\n\nThe people who succeed in ${n} aren't the most talented. They're the most consistent.\n\nWhich of these are you working on right now? Drop it in the comments 👇`,
+      visualDescription: `Split image: left side shows a confused beginner overwhelmed by options, right side shows a calm focused person with a clear simple plan. Clean minimal aesthetic.`,
+      viralityScore: 9,
+      viralityReason: `"Nobody tells beginners" hook triggers strong curiosity gap. Directly addresses ${a} — they'll share this because it feels like it was written for them.`,
+      hashtags: [`#${n.replace(/\s+/g, "").toLowerCase()}`, "#beginnertips", "#contentcreator", "#growthmindset", "#consistency", "#community", "#starthere"],
+      cta: "Save this and share it with someone just starting out.",
+      format: "Carousel",
+    },
+    {
+      hook: `Hot take: most ${n} advice online is making you WORSE. Here's why.`,
+      caption: `I know that's a bold claim. But hear me out.\n\nThe ${n} space is flooded with generic, one-size-fits-all advice that doesn't account for real people like ${a}.\n\nWhat actually works:\n→ Advice tailored to YOUR situation\n→ Small consistent wins over big dramatic changes\n→ Ignoring 90% of what you see online\n\nThe people making real progress in ${n} aren't following the crowd. They're doing less, but doing it smarter.\n\nAgree or disagree? I want to hear your take 👇`,
+      visualDescription: `Bold text overlay on dark background: "The ${n} advice you're following is broken." High contrast, thumb-stopping.`,
+      viralityScore: 9,
+      viralityReason: `Contrarian hot take in a crowded niche drives comments and shares. The disagreement hook forces engagement from both sides.`,
+      hashtags: [`#${n.replace(/\s+/g, "").toLowerCase()}`, "#hottake", "#realtalk", "#unpopularopinion", "#truthbomb"],
+      cta: "Follow for more takes they won't tell you elsewhere.",
+      format: "Talking head",
+    },
+    {
+      hook: `3 things I wish I knew before starting ${n} (would have saved me years)`,
+      caption: `Looking back, these three things changed everything for me in ${n}:\n\n1️⃣ You don't need to be an expert to start — you just need to be one step ahead\n2️⃣ Your "obvious" knowledge is gold to ${a} who are just beginning\n3️⃣ Consistency beats perfection every single time\n\nI spent so long waiting until I was "ready." \n\nThe truth? I learned more by starting imperfectly than by planning perfectly.\n\nWhich one of these hits home for you? 👇`,
+      visualDescription: `Clean numbered list graphic with a warm gradient background. Each number in a circle, bold sans-serif font. Minimal and elegant.`,
+      viralityScore: 8,
+      viralityReason: `"Wish I knew" format performs 2–3× above average because it positions the creator as relatable AND authoritative. High save rate.`,
+      hashtags: [`#${n.replace(/\s+/g, "").toLowerCase()}tips`, "#lessonslearned", "#creatoradvice", "#growthhacks", "#starttoday"],
+      cta: "Save this for when you need a reminder to just start.",
+      format: "Single image",
+    },
+    {
+      hook: `A ${a.split(" ")[0]} DM'd me asking how to get results in ${n}. Here's exactly what I told them.`,
+      caption: `Got a DM last week from someone who was frustrated.\n\nThey'd been trying to make progress in ${n} for months with nothing to show for it.\n\nHere's the framework I shared:\n\nStep 1: Define ONE clear goal (not five)\nStep 2: Build the smallest possible daily habit around it\nStep 3: Measure weekly, adjust monthly\nStep 4: Find one accountability partner\n\nThree weeks later they messaged me again. Real progress.\n\nThe system isn't complicated. The hard part is trusting simple over complex.\n\nWant the full breakdown? Drop "SYSTEM" in the comments 👇`,
+      visualDescription: `Phone screen mockup showing a DM conversation, then cutting to a results graphic. Authentic, conversational feel.`,
+      viralityScore: 8,
+      viralityReason: `Real story format with a specific outcome drives trust. "Drop SYSTEM" CTA is a proven engagement driver that also boosts algorithmic reach.`,
+      hashtags: [`#${n.replace(/\s+/g, "").toLowerCase()}`, "#dmme", "#realresults", "#framework", "#accountability"],
+      cta: `Drop "SYSTEM" in the comments for the full breakdown.`,
+      format: "Reel",
+    },
+    {
+      hook: `What ${n} actually looks like at week 1 vs week 12 (no filters)`,
+      caption: `Week 1 in ${n}:\n→ Overwhelmed by information\n→ Comparing yourself to everyone\n→ Questioning if you're cut out for this\n\nWeek 12:\n→ You have a system that works for YOU\n→ Small wins feel massive\n→ You can't imagine going back\n\nThe gap between week 1 and week 12 isn't talent.\n\nIt's just people who kept going when it got uncomfortable.\n\nIf you're in week 1 right now — this is your sign to stay.\n\nTag someone who needs to see this 👇`,
+      visualDescription: `Two-column before/after graphic. Week 1: chaotic sticky notes and question marks. Week 12: clean organised system with green checkmarks. Same person, different energy.`,
+      viralityScore: 9,
+      viralityReason: `Before/after with emotional arc is the highest-performing format in transformation niches. "Tag someone" CTA drives organic reach. High relatability for ${a}.`,
+      hashtags: [`#${n.replace(/\s+/g, "").toLowerCase()}journey`, "#week1vs12", "#transformation", "#keepgoing", "#progress"],
+      cta: "Tag someone who's in their week 1 right now.",
+      format: "Carousel",
+    },
+    {
+      hook: `The 5-minute ${n} routine that changed everything for me`,
+      caption: `I used to think I needed hours to make progress in ${n}.\n\nThen I built this 5-minute daily routine:\n\n⏱ Min 1–2: Review my one goal for the day\n⏱ Min 3: Do the one action that moves the needle\n⏱ Min 4: Note what worked yesterday\n⏱ Min 5: Set intention for tomorrow\n\nThat's it.\n\nNo complicated system. No 2-hour deep work blocks.\n\nJust 5 minutes of intentional action, every single day.\n\nFor ${a}, this is the gateway habit. Everything grows from here.\n\nSteal this. It's yours.`,
+      visualDescription: `Minimalist timer graphic — 5 segments, each labelled. Clean dark background with purple accent. Feels premium and actionable.`,
+      viralityScore: 8,
+      viralityReason: `Low-barrier entry ("only 5 minutes") removes the biggest objection. Numbered steps drive saves. "Steal this" CTA reduces friction to share.`,
+      hashtags: [`#${n.replace(/\s+/g, "").toLowerCase()}`, "#5minuteroutine", "#dailyhabits", "#productivityhacks", "#morningroutine"],
+      cta: "Save this. Try it tomorrow morning.",
+      format: "Carousel",
+    },
+    {
+      hook: `Nobody in ${n} talks about this. I'm going to change that.`,
+      caption: `There's a topic in ${n} that everyone experiences but nobody posts about.\n\nThe plateau.\n\nThat moment when you've been putting in the work, doing everything right, and… nothing seems to be moving.\n\nHere's what I've learned: the plateau isn't a sign to stop. It's a sign you're about to level up.\n\nFor ${a}, this is the moment that separates the ones who make it from the ones who quit.\n\nNext time you hit a plateau, ask yourself:\n→ Am I tracking the right metrics?\n→ Have I changed anything in the last 4 weeks?\n→ Am I comparing my chapter 3 to someone else's chapter 20?\n\nThe plateau is the game. Learn to play it.\n\nHave you hit a plateau recently? What helped you push through? 👇`,
+      visualDescription: `Flat line graph that suddenly spikes upward after a long plateau. Simple, clean, powerful visual metaphor. White on dark background.`,
+      viralityScore: 7,
+      viralityReason: `Addresses a universal but underserved pain point. The graph visual is highly shareable. Question CTA drives genuine comment engagement.`,
+      hashtags: [`#${n.replace(/\s+/g, "").toLowerCase()}`, "#plateau", "#keepgoing", "#mindset", "#levelup", "#realtalk"],
+      cta: "Share this with someone who needs to hear it today.",
+      format: "Single image",
+    },
+  ];
 }
 
-const MOCK_IDEAS: Omit<PostIdea, "id" | "createdAt" | "platform">[] = [
-  {
-    hook: "I trained every day for 30 days with zero equipment. Here's what actually changed 👇",
-    caption:
-      "No gym. No excuses. Just 20 minutes a day, a mat, and some serious consistency.\n\nWeek 1: Everything hurt. Week 2: My energy went through the roof. Week 4: People started asking what I was doing differently.\n\nHere's the exact routine I followed — save this for tomorrow morning.\n\n✅ 20 push-ups\n✅ 30 squats\n✅ 1-min plank\n✅ 15 glute bridges\n✅ Repeat 3x\n\nNo equipment. No excuses. Just start.",
-    visualDescription:
-      "Split image: left side shows a messy living room floor with a yoga mat, right side shows confident posture after 30 days. Authentic, not stock-photo perfect.",
-    viralityScore: 9,
-    viralityReason:
-      "30-day transformation + zero-barrier entry (no equipment) hits two massive emotional triggers: aspiration and accessibility. The before/after format performs 3–4× above average in fitness niches.",
-    hashtags: ["#noequipmentworkout", "#homefitness", "#30daychallenge", "#fitnessjourney", "#workoutmotivation", "#beginnerworkout", "#fitnessmotivation", "#healthylifestyle"],
-    cta: "Save this and tag someone who needs to start tomorrow.",
-    format: "Carousel",
-  },
-  {
-    hook: "The #1 mistake beginners make that kills their progress in week 2",
-    caption:
-      "I see it every single time.\n\nSomeone starts strong, crushes week 1, then disappears by week 2. Not because they're lazy — because they made this one mistake.\n\nThey went too hard, too fast.\n\nYour body isn't used to this yet. When you feel sore, rest IS progress. When you skip a day, that's not failure — that's recovery.\n\nThe goal in your first 30 days isn't transformation. It's building the habit.\n\nDrop a 💪 if you're in the habit-building phase right now.",
-    visualDescription:
-      "Text overlay on a calm, warm-toned background. Font: bold white text on dark gradient. No stock photos — feels like a personal note.",
-    viralityScore: 8,
-    viralityReason:
-      "Contrarian framing ('mistake' + permission to slow down) drives saves and shares because it directly addresses the #1 fear beginners have. Comment bait is strong.",
-    hashtags: ["#beginnerfit", "#fitnesstips", "#workoutadvice", "#fitnessmindset", "#gymtips", "#fitnessforbeginners", "#movementismedicine"],
-    cta: "Follow for honest fitness advice — no bro-science.",
-    format: "Single image",
-  },
-  {
-    hook: "What 20 minutes of movement does to your brain (this is why I never skip)",
-    caption:
-      "I used to think rest days were lazy days.\n\nThen I learned what exercise actually does to your prefrontal cortex.\n\nAfter just 20 minutes of moderate movement:\n🧠 BDNF spikes (brain fertilizer — literally grows new connections)\n😌 Cortisol drops by up to 26%\n⚡ Focus improves for 2–3 hours after\n\nThis is why I moved my workout to 7am. Not for aesthetics. For the mental edge.\n\nYou don't need a gym. You need 20 minutes and a commitment.",
-    visualDescription:
-      "Aesthetic flat lay: journal, water bottle, earbuds on a wooden floor. Soft morning light. Clean and aspirational without being unrealistic.",
-    viralityScore: 8,
-    viralityReason:
-      "Science-backed content with a personal story wrapper performs extremely well with 25–40yo audiences. The 'unexpected benefit' angle (brain, not body) drives shares from non-fitness followers too.",
-    hashtags: ["#exerciseandthebrain", "#morningroutine", "#mentalhealth", "#movementismedicine", "#scienceoffitness", "#productivityhacks", "#mindandbody"],
-    cta: "Share this with someone who needs a reason to start moving.",
-    format: "Reel",
-  },
-  {
-    hook: "Hot take: Gym anxiety is not a confidence problem. It's a knowledge problem.",
-    caption:
-      "Hear me out.\n\nMost people who feel anxious at the gym aren't insecure — they're just uncertain.\n\nThey don't know:\n• Which machines to use\n• What 'proper form' actually looks like\n• Whether they're doing enough or too much\n\nAnxiety fills the knowledge gap.\n\nThe fix? Start at home. Build a base. Learn the movements before you perform them in public.\n\nBy the time you walk into a gym, you'll own the room.\n\nAm I wrong? Let me know 👇",
-    visualDescription:
-      "POV shot of an empty gym floor from the doorway, slightly intimidating. Or a confident person stretching at home, calm and in control. Contrast is the point.",
-    viralityScore: 9,
-    viralityReason:
-      "Hot take format + reframe of a widely felt pain point = high comment velocity. People who agree will share it; people who disagree will comment. Both signals boost reach.",
-    hashtags: ["#gymanxiety", "#fitnessforbeginners", "#workoutathome", "#gymtips", "#mentalhealthfitness", "#beginnerlifting", "#fitnessmindset"],
-    cta: "Save this. You're not alone in feeling this way.",
-    format: "Reel",
-  },
-  {
-    hook: "I asked 50 people who quit working out why they stopped. Same answer every time.",
-    caption:
-      "I ran an informal poll last month.\n\n50 people. All had started a fitness routine. All had stopped.\n\nThe #1 reason? Not time. Not money. Not even motivation.\n\nIt was: 'I didn't see results fast enough.'\n\nHere's the truth nobody tells you: visible results take 8–12 weeks minimum. But you *feel* results in week 2.\n\nMore energy. Better sleep. Less stress. Clearer head.\n\nTrack those wins. They're real — even when the mirror lies.\n\nWhat result kept YOU going? Tell me below 👇",
-    visualDescription:
-      "Simple bold text graphic — dark background, bright accent color, minimal. Like a quote card but with data framing. Very shareable.",
-    viralityScore: 7,
-    viralityReason:
-      "Data framing ('I asked 50 people') builds authority fast. The comment prompt is specific enough to generate real responses. Saves well because it reframes expectations.",
-    hashtags: ["#fitnessreality", "#workoutresults", "#fitnessmotivation", "#consistencyiskey", "#fitnessjourney", "#realistfitness", "#noquit"],
-    cta: "Follow for the fitness advice nobody else is giving you.",
-    format: "Single image",
-  },
-  {
-    hook: "This 5-minute morning routine is the reason I haven't missed a workout in 6 months",
-    caption:
-      "I used to spend 30 minutes 'getting ready' to work out.\n\nPerfect playlist. Right outfit. Optimal time.\n\nAll procrastination.\n\nNow: alarm → mat → move. 5 minutes to decide I'm doing it.\n\nThe routine:\n⏰ Alarm (no snooze)\n🥤 Glass of water immediately\n👟 Shoes on before brain wakes up\n📱 Timer set for first exercise\n💪 Start before you're ready\n\nThe secret is making the start frictionless. The workout takes care of itself.\n\nSteal this. It's yours.",
-    visualDescription:
-      "Flat lay of minimal morning items: glass of water, running shoes, phone with timer. Clean white background. Aesthetic but achievable.",
-    viralityScore: 8,
-    viralityReason:
-      "Actionable micro-routine with specific steps gets saved at a very high rate. '6 months' streak signals credibility. 'Steal this' CTA reduces friction to share.",
-    hashtags: ["#morningroutine", "#workoutroutine", "#fitnesshabits", "#habitbuilding", "#morningworkout", "#consistency", "#fitnesstips"],
-    cta: "Save this for tomorrow morning. Try it once.",
-    format: "Carousel",
-  },
-  {
-    hook: "Nobody talks about the mental shift that happens at week 3. Let me change that.",
-    caption:
-      "Week 1: you're riding motivation.\nWeek 2: everything hurts and you question everything.\nWeek 3: something quietly shifts.\n\nYou stop asking 'should I work out today?' and start asking 'when am I working out today?'\n\nThat's the moment. That's the identity shift.\n\nYou're not someone who's 'trying to work out.' You're someone who works out.\n\nIf you're in week 1 or 2 right now — just get to week 3. That's the whole game.\n\nTag someone who needs to hear this.",
-    visualDescription:
-      "Minimalist text-based graphic or a short talking-head Reel. Authentic, unscripted feel. The message is the visual.",
-    viralityScore: 9,
-    viralityReason:
-      "Identity-level framing ('you ARE someone who works out') is one of the highest-performing emotional triggers in habit/fitness content. Tag-a-friend CTA is highly effective here because it's genuinely useful to share.",
-    hashtags: ["#identityshift", "#habitformation", "#fitnessjourney", "#week3", "#buildinghabits", "#fitnessmindset", "#motivation"],
-    cta: "Tag someone who's in week 1. They need this.",
-    format: "Reel",
-  },
-];
-
-export async function generateIdeasMock(
-  request: GenerateIdeasRequest
-): Promise<GenerateIdeasResponse> {
+export async function generateIdeasMock(request: GenerateIdeasRequest): Promise<GenerateIdeasResponse> {
   await sleep(MOCK_DELAY_MS);
 
-  const platforms = request.platforms.length > 0
-    ? request.platforms
-    : (["instagram", "tiktok"] as Platform[]);
+  const { profile } = request;
+  const platforms = request.platforms.length > 0 ? request.platforms : profile.platforms;
+  const usePlatforms: Platform[] = platforms.length > 0 ? platforms : ["instagram" as Platform];
 
-  const ideas: PostIdea[] = MOCK_IDEAS.map((idea, i) => ({
-    ...idea,
+  const templates = makeIdeas(profile, usePlatforms);
+
+  const ideas: PostIdea[] = templates.map((t, i) => ({
+    ...t,
     id: generateId(),
-    platform: platforms[i % platforms.length],
+    platform: usePlatforms[i % usePlatforms.length],
     createdAt: new Date().toISOString(),
-    // Slightly vary scores so cards look distinct
-    viralityScore: Math.min(10, Math.max(1, idea.viralityScore + (i % 3 === 0 ? 0 : i % 3 === 1 ? -1 : 1))),
   }));
+
+  // Sort by virality score
+  ideas.sort((a, b) => b.viralityScore - a.viralityScore);
 
   return {
     ideas,
-    sessionSummary: `${request.profile.name}'s ${request.vibe} batch: In the ${request.profile.niche} niche, content that combines personal narrative with actionable frameworks consistently outperforms generic advice. Your audience responds to vulnerability + specificity. The highest-scoring ideas this session use identity-level framing and zero-barrier entry points.`,
+    sessionSummary: `Mock insight for "${profile.niche}": Your audience (${profile.targetAudience.slice(0, 80)}) responds best to relatable stories, contrarian takes, and actionable frameworks. Add AWS credentials to unlock real Bedrock AI analysis tailored to your exact niche.`,
   };
 }

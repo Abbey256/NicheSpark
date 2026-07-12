@@ -60,13 +60,13 @@ export interface ContentCalendar {
 
 function mockNicheRefinement(niche: string): NicheRefinement {
   return {
-    refined: niche.length > 20 ? niche : `${niche} for busy beginners`,
-    avatar: `Your ideal follower is a motivated but time-poor adult who wants results without complexity. They've tried and quit before, and they're looking for someone who gets it.`,
-    opportunity: `The "${niche}" space has growing demand from people burnt out by over-complicated content. Simple, actionable advice stands out.`,
+    refined: niche.length > 25 ? niche : `${niche} for motivated beginners`,
+    avatar: `Your ideal follower is someone actively trying to improve in ${niche} but feeling overwhelmed by conflicting information. They want clear, simple guidance from someone who's been where they are.`,
+    opportunity: `The "${niche}" space has high demand but low trust — most content is generic. Creators who are specific, honest, and consistent stand out immediately.`,
     topAngles: [
-      "Quick wins that fit into a busy schedule",
-      "Myth-busting the overcomplicated advice",
-      "Personal transformation story with a clear lesson",
+      `Beginner mistakes and how to avoid them in ${niche}`,
+      `The "nobody talks about this" angle in ${niche}`,
+      `Quick wins that prove ${niche} is achievable for your audience`,
     ],
   };
 }
@@ -74,16 +74,16 @@ function mockNicheRefinement(niche: string): NicheRefinement {
 function mockAudienceInsights(_audience: string): AudienceInsights {
   return {
     painPoints: [
-      "No time to create consistent content",
-      "Don't know what to post that actually gets engagement",
-      "Feel like their niche is too crowded",
+      "Information overload — too many conflicting opinions",
+      "Lack of consistency and not knowing how to build the habit",
+      "Feeling behind compared to others and doubting themselves",
     ],
     objections: [
-      "\"I'm not an expert yet\"",
-      "\"Nobody cares what I have to say\"",
+      `"I don't have enough time to commit to this properly"`,
+      `"I've tried before and it didn't work for me"`,
     ],
-    desiredOutcome: "Build a loyal audience that converts — without spending hours on content every week.",
-    languageHints: "Uses words like: overwhelmed, consistent, authentic, results, just 5 minutes, real talk",
+    desiredOutcome: "Make real, visible progress without feeling overwhelmed or needing to overhaul their entire life.",
+    languageHints: "They use phrases like: 'I keep starting over', 'I just can't stay consistent', 'Is this even working?', 'Where do I even begin'",
   };
 }
 
@@ -100,17 +100,18 @@ function mockPlatformStrategies(platforms: Platform[]): PlatformStrategy[] {
 
 function mockCalendar(niche: string, platforms: Platform[]): ContentCalendar {
   const p = platforms[0] ?? "instagram";
+  const slug = niche.replace(/\s+/g, "").toLowerCase().slice(0, 20);
   return {
-    weekTheme: "Foundation Week: Establish your authority and build audience trust",
-    quickWin: `Post a 'Hot take' about a common myth in ${niche} — these get shared 3× more than educational posts.`,
+    weekTheme: `Foundation Week: Establish your voice and build trust in the ${niche} space`,
+    quickWin: `Post a contrarian hot take about a common myth in ${niche} — these get 3× more shares than educational posts and immediately signal you're different.`,
     days: [
-      { day: 1, vibe: "personal-story",  hook: `I was doing ${niche} completely wrong for 2 years. Here's what changed everything 👇`, bodyPreview: `It wasn't about doing more. It was about doing less, but smarter. Let me walk you through the exact shift...`, format: "Carousel", platform: p, hashtags: [`#${niche.replace(/\s+/g, "").toLowerCase()}`, "#contentcreator", "#mondaymotivation"], viralityScore: 9 },
-      { day: 2, vibe: "educational",     hook: `The 3-step framework I use to [achieve result] in under 20 minutes`, bodyPreview: `Most people overcomplicate this. Here's the simplified version that actually works for beginners...`, format: "Single image", platform: p, hashtags: ["#tips", "#tutorial", "#howto"], viralityScore: 7 },
-      { day: 3, vibe: "quick-tip",       hook: `One thing: stop doing [common mistake]. Do this instead.`, bodyPreview: `I see this mistake every week. The fix takes 30 seconds and the results are immediate...`, format: "Reel", platform: p, hashtags: ["#quicktip", "#hacks", "#productivity"], viralityScore: 8 },
-      { day: 4, vibe: "case-study",      hook: `How [my client / I] went from [0] to [result] in 30 days with no [excuse]`, bodyPreview: `Here's the exact breakdown. Week 1 was rough — here's what happened and what we changed...`, format: "Thread", platform: p, hashtags: ["#casestudy", "#results", "#transformation"], viralityScore: 8 },
-      { day: 5, vibe: "trending",        hook: `Unpopular opinion: [conventional wisdom in your niche] is actually slowing you down.`, bodyPreview: `Everyone says you need to [common advice]. Here's why I disagree and what actually moves the needle...`, format: "Talking head", platform: p, hashtags: ["#unpopularopinion", "#realtalk", "#debate"], viralityScore: 9 },
-      { day: 6, vibe: "motivational",    hook: `You're not behind. You're just getting started.`, bodyPreview: `I know the comparison trap is real. But here's the truth about where 'starting late' actually puts you...`, format: "Single image", platform: p, hashtags: ["#motivation", "#mindset", "#keepgoing"], viralityScore: 7 },
-      { day: 7, vibe: "educational",     hook: `Weekly roundup: 7 things I learned this week about ${niche}`, bodyPreview: `Some of these surprised even me. Sharing because I wish someone had told me this sooner...`, format: "Carousel", platform: p, hashtags: ["#weeklyreview", "#learnings", "#growth"], viralityScore: 6 },
+      { day: 1, vibe: "personal-story",  hook: `I almost quit ${niche} in my first month. Here's what stopped me 👇`, bodyPreview: `It wasn't a fancy strategy or a viral post. It was one small decision that changed my relationship with ${niche} entirely...`, format: "Carousel", platform: p, hashtags: [`#${slug}`, "#storytime", "#keepgoing", "#mondaymotivation"], viralityScore: 9 },
+      { day: 2, vibe: "educational",     hook: `The 3-step framework I use to get results in ${niche} (works for complete beginners)`, bodyPreview: `Most people overcomplicate ${niche}. Here's the simplified version that actually sticks long-term...`, format: "Single image", platform: p, hashtags: [`#${slug}tips`, "#tutorial", "#framework", "#howto"], viralityScore: 7 },
+      { day: 3, vibe: "quick-tip",       hook: `Stop doing this one thing in ${niche}. Do this instead.`, bodyPreview: `I see this mistake every week from people getting into ${niche}. The fix takes 30 seconds and the difference is immediate...`, format: "Reel", platform: p, hashtags: [`#${slug}hacks`, "#quicktip", "#didyouknow"], viralityScore: 8 },
+      { day: 4, vibe: "case-study",      hook: `How I went from zero to consistent results in ${niche} in 30 days`, bodyPreview: `Week 1 was rough. I had no idea what I was doing. Here's the exact breakdown of what changed week by week...`, format: "Thread", platform: p, hashtags: [`#${slug}journey`, "#casestudy", "#results", "#30daychallenge"], viralityScore: 8 },
+      { day: 5, vibe: "trending",        hook: `Unpopular opinion: the way most people approach ${niche} is completely backwards.`, bodyPreview: `Everyone says you need to [common advice in this niche]. Here's why I disagree and what the data actually shows...`, format: "Talking head", platform: p, hashtags: [`#${slug}`, "#unpopularopinion", "#hottake", "#realtalk"], viralityScore: 9 },
+      { day: 6, vibe: "motivational",    hook: `You're not behind in ${niche}. You're exactly where you need to be.`, bodyPreview: `The comparison trap in ${niche} is real. But here's the truth about "starting late" that nobody talks about...`, format: "Single image", platform: p, hashtags: [`#${slug}motivation`, "#mindset", "#youvegotthis"], viralityScore: 7 },
+      { day: 7, vibe: "educational",     hook: `7 things I learned this week about ${niche} (some of these surprised me)`, bodyPreview: `Weekly roundup time. Sharing because I wish someone had told me these things when I first started in ${niche}...`, format: "Carousel", platform: p, hashtags: [`#${slug}`, "#weeklyreview", "#learnings", "#growthmindset"], viralityScore: 6 },
     ],
   };
 }
