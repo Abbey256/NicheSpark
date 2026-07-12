@@ -8,7 +8,7 @@ import { getAIMode } from "@/lib/api";
 import {
   runStep1AI, runStep2AI, runStep3AI, runStep5AI,
   type NicheRefinement, type AudienceInsights,
-  type PlatformStrategy,
+  type PlatformStrategy, type ContentCalendar,
 } from "@/lib/onboardingAI";
 import type { CreatorProfile, Platform, Vibe } from "@/types";
 import { Button } from "@/components/ui/button";
