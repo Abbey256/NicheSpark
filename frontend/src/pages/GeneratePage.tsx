@@ -4,7 +4,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/useToast";
 import { generateIdeas, getAIMode } from "@/lib/api";
 import { runStep5AI, type ContentCalendar } from "@/lib/onboardingAI";
-import { saveLocalSession, loadLocalSessions } from "@/lib/storage";
+import { saveLocalSession } from "@/lib/storage";
 import { generateId, vibeLabel } from "@/lib/utils";
 import type { PostIdea, Vibe, Platform } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -46,10 +46,6 @@ export default function GeneratePage() {
   // Calendar state
   const [calendar, setCalendar]         = useState<ContentCalendar | null>(null);
   const [calLoading, setCalLoading]     = useState(false);
-
-  // Load existing calendar from first session if it exists
-  const firstSession = loadLocalSessions()[0];
-  const hasCalendar  = !!calendar || (firstSession && firstSession.ideas.length === 7);
 
   const modeLabel = aiMode === "bedrock"
     ? "🟢 Live · Amazon Bedrock"

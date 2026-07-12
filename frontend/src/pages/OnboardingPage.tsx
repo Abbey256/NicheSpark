@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Zap, ArrowRight, ArrowLeft, Check, Sparkles, Loader2, Brain, Target, Monitor, Mic } from "lucide-react";
+import { Zap, ArrowRight, ArrowLeft, Check, Sparkles, Loader2, Target, Monitor, Mic } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { saveLocalSession } from "@/lib/storage";
 import { generateId } from "@/lib/utils";
@@ -8,7 +8,7 @@ import { getAIMode } from "@/lib/api";
 import {
   runStep1AI, runStep2AI, runStep3AI, runStep5AI,
   type NicheRefinement, type AudienceInsights,
-  type PlatformStrategy, type ContentCalendar,
+  type PlatformStrategy,
 } from "@/lib/onboardingAI";
 import type { CreatorProfile, Platform, Vibe } from "@/types";
 import { Button } from "@/components/ui/button";

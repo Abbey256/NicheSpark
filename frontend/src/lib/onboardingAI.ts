@@ -71,7 +71,7 @@ function mockNicheRefinement(niche: string): NicheRefinement {
   };
 }
 
-function mockAudienceInsights(audience: string): AudienceInsights {
+function mockAudienceInsights(_audience: string): AudienceInsights {
   return {
     painPoints: [
       "No time to create consistent content",

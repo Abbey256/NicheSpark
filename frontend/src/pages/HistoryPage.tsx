@@ -3,7 +3,7 @@ import { Clock, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { loadLocalSessions } from "@/lib/storage";
 import { formatDate, vibeLabel, platformLabel } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import type { IdeaSession } from "@/types";
 
 function SessionRow({ session }: { session: IdeaSession }) {
